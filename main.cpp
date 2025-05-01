@@ -37,7 +37,9 @@ class ExpenseManager {
     void listExpense() const;
     void updateExpense(int id);
     void deleteExpense(int id);
-    void viewSummary() ;
+    void viewSummary();
+    void saveToFile(const std::string& filename) const;
+    void loadFromFile(const std::string& filename) ;
 };
 
 void ExpenseManager::addExpense(const std::string& description, long long amount, const std::string& category) {
@@ -127,6 +129,67 @@ void ExpenseManager::deleteExpense(int id) {
     std::cout << "ID not found.\n";
 }
 
+void ExpenseManager::saveToFile(const std::string& filename) const{
+    std::ofstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file for saving." << std::endl;
+        return;
+    }
+
+    file << "ID,Description,Amount,Category,Timestamp\n";
+
+    for (const auto& e : expenses) {
+        file << e.ID << ','
+        <<std::quoted(e.description) << ','
+        << e.amount << ','
+        << std::quoted(e.category) << ','
+        <<e.getTimeString() << '\n';
+    }
+    file.close();
+    std::cout << "Expenses saved to file." << std::endl;
+}
+
+void ExpenseManager::loadFromFile(const std::string& filename)  {
+    std::ifstream file(filename);
+    std::string line;
+    std::getline(file, line); // Skip header line
+
+    int maxID = 0;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string idStr, desc, amtStr, cat, timeStr;
+        
+
+        std::getline(iss, idStr,',');
+        iss >> std::quoted(desc);
+        iss.ignore();
+        std::getline(iss, amtStr, ',');
+        iss >> std::quoted(cat);
+        iss.ignore();
+        std::getline(iss, timeStr);
+
+        int id = std::stoi(idStr); 
+        long long amount = std::stoll(amtStr);
+
+        std::tm tm = {};
+        std::istringstream ss(timeStr);
+        ss >> std::get_time(&tm,"%Y-%m-%d %H:%M:%S");
+        std::time_t tt = std::mktime(&tm);
+        auto timestamp = std::chrono::system_clock::from_time_t(tt);
+
+
+        Expense e(id, desc, amount, cat);
+        e.timestamp = timestamp;
+        expenses.push_back(e);
+
+        if (id > maxID) {
+            maxID = id;
+        }
+    }
+    nextID = maxID + 1;
+}
+
 int main() {
     ExpenseManager manager;
     std::cout << ">ex// type 'help' to view commands\n";
@@ -142,6 +205,8 @@ int main() {
         if (command == "help") {
             listCommands();
         }
+        else if (command == "exit") break;
+
         else if (command == "add") {
 
             std::string line = input.substr(4);
@@ -194,7 +259,19 @@ int main() {
         else if (command == "viewsum") {
             manager.viewSummary();
         }
-
+        else if (command == "load") {
+            std::string filename;
+            std::cout << "Enter filename to load: ";
+            std::getline(std::cin, filename);
+            manager.loadFromFile(filename);
+        }
+        
+        else if (command == "save") {
+            std::string filename;
+            std::cout << "Enter filename to save: ";
+            std::cin >> filename;
+            manager.saveToFile(filename);
+        }
         else {
             std::cout << "command unknown. Type 'help' to view commands\n";
         }
