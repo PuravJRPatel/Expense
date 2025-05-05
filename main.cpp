@@ -30,7 +30,7 @@ class Expense {
 class ExpenseManager {
     private:
     std::vector<Expense> expenses;
-    int nextID = 1;
+    int nextID;
 
     public:
     void addExpense(const std::string& description, long long amount, const std::string& category);
@@ -155,7 +155,7 @@ void ExpenseManager::loadFromFile(const std::string& filename)  {
     std::string line;
     std::getline(file, line); // Skip header line
 
-    int maxID = 0;
+    int maxID = 1;
     while (std::getline(file, line)) {
         std::istringstream iss(line);
         std::string idStr, desc, amtStr, cat, timeStr;
